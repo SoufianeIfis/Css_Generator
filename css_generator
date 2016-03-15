@@ -1,0 +1,96 @@
+#!/usr/bin/php
+<?php
+function option_r($file){
+	static $array_image = array();
+	$option3 = getopt('r:', array('recursive:'));
+	$option_3 = getopt('r', array('recursive'));
+	if(!empty($option3)){
+    	foreach(glob($file."/*.png") as $filename){
+        	$array_image[] .= $filename;
+    	}
+    	foreach(glob($file.'/*') as $filename){
+        	if(is_dir($filename)){
+        	    option_r($filename);
+       		}
+    	}
+    }
+    elseif(!empty($option_3)){
+    	exit("Pas de dossier\n");
+    }
+    else{
+    	$array_image = glob('*.png');
+    }
+    option($array_image);
+}
+
+function option($array_image){
+	$width = 0;
+	$width_1 = 0;
+	$option = getopt('i:', array('output-image:'));
+	$sprite = "";
+	if(!empty($option)){
+		foreach($option as $value){
+			$sprite = $value.".png";
+		}
+	}
+	else{
+		$sprite = 'sprite.png';
+	}
+	generator($sprite, $array_image, $width, $width_1);
+}
+
+function generator($sprite, $array_image, $width, $width_1){
+	$heightmax = 0;
+	foreach($array_image as $image){
+		$source = imagecreatefrompng($image);
+		$width_source = imagesx($source);
+		$height_source = imagesy($source);
+		$width = $width + $width_source;
+		$tbl[] = $source;
+		if($height_source > $heightmax){
+			$heightmax = $height_source;
+		}
+	}
+	if(isset($tbl)){
+		$source_1 = imagecreatetruecolor($width, $heightmax);
+		imagesavealpha($source_1, true);
+		$color = imagecolorallocatealpha($source_1, 0, 0, 0, 127);
+		imagefill($source_1, 0, 0, $color);
+		foreach($tbl as $value){
+			$w = imagesx($value);
+			$h = imagesy($value);
+			imagecopy($source_1, $value, $width_1, 0, 0, 0, $w, $h);
+			$width_1 = $width_1 + $w;
+		}
+		imagepng($source_1, $sprite);
+		style($tbl, $sprite);
+	}
+}	
+
+function style($tbl, $sprite){
+	$option2 = getopt('s:', array('output-style:'));
+	if(!empty($option2)){
+		foreach($option2 as $value){
+			$file = $value.".css";
+		}
+	}
+	else{
+		$file = 'style.css';
+	}
+	$height_2 = 0;
+	$css = "";
+	$img = 0;
+	foreach($tbl as $value){
+		$w = imagesx($value);
+		$h = imagesy($value);
+		$css .= ".image".$img."{\nwidth: ".$w."px;\nheight: ".$h."px;\n".
+		"display: inline-block;"."\nbackground-image: url('".$sprite."');"."\n"
+		."background-repeat: no-repeat;\nbackground-position: -".$height_2.
+		"px 0px;\n}\n\n";
+		$height_2 = $height_2 + $w;
+		$img++;
+	}
+	file_put_contents($file, $css);
+}
+
+option_r($argv[count($argv) - 1]);
